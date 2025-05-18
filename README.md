@@ -28,7 +28,7 @@ Try it out here: [https://sudhanshuverma1.github.io/Password-Manager/](https://s
 
 ## Screenshot
 
-![Password Manager Screenshot](screenshot.png)
+![Password Manager Screenshot](pass.png)
 
 
 ---
