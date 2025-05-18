@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Password Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-[url('bg.jpg')] bg-cover bg-center bg-no-repeat text-white min-h-screen flex items-center justify-center p-4 transition-colors duration-300">
+  <div class="w-full max-w-xl">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-yellow-600 hover:text-yellow-500">🔐 Password Manager</h1>
+    </div>
+
+    <div class="bg-white/5 backdrop-blur-md p-4 rounded-xl shadow-md border border-white/20 hover:border-yellow-600">
+      <label for="platform" class="block mb-2 font-semibold">Where is this used?</label>
+      <input id="platform" type="text" placeholder="e.g., Gmail, Instagram, Facebook" class="w-full p-2 rounded mb-4 text-black"/>
+
+      <label for="length" class="block mb-2 font-semibold">Password Length:</label>
+      <input id="length" type="number" min="4" max="50" value="12" class="w-full p-2 rounded mb-4 text-black"/>
+
+      <!-- Character Type Selection -->
+      <div class="mb-4 space-y-2">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="useLetters" class="accent-yellow-500" checked>
+          <span class="font-semibold">Use Letters (A-Z, a-z)</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="useNumbers" class="accent-yellow-500" checked>
+          <span class="font-semibold">Use Numbers (0-9)</span>
+        </label>
+        <label class="flex items-center gap-2">
+          <input type="checkbox" id="useSymbols" class="accent-yellow-500">
+          <span class="font-semibold">Use Symbols (!@#$...)</span>
+        </label>
+      </div>
+
+      <button id="generateBtn" class="w-full bg-yellow-600 hover:bg-yellow-500 p-2 rounded font-semibold text-white">
+        Generate Password
+      </button>
+
+      <div id="generatedPassword" class="text-lg font-mono mt-4 text-green-400"></div>
+    </div>
+
+    <div class="mt-8">
+      <h2 class="text-2xl mb-4 text-yellow-600">💾 Saved Passwords</h2>
+      <ul id="passwordList" class="space-y-2"></ul>
+
+      <div class="mt-6 flex gap-3 flex-wrap">
+        <button id="exportTxt" class="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500">Export .txt</button>
+        <button id="exportJson" class="px-4 py-2 rounded bg-yellow-600 hover:bg-yellow-500">Export .json</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const generateBtn = document.getElementById("generateBtn");
+    const generatedPasswordEl = document.getElementById("generatedPassword");
+    const passwordList = document.getElementById("passwordList");
+    const exportTxt = document.getElementById("exportTxt");
+    const exportJson = document.getElementById("exportJson");
+
+    let savedPasswords = JSON.parse(localStorage.getItem("passwords")) || [];
+
+    function saveToLocalStorage() {
+      localStorage.setItem("passwords", JSON.stringify(savedPasswords));
+    }
+
+    function generatePassword(length) {
+      const useLetters = document.getElementById("useLetters").checked;
+      const useNumbers = document.getElementById("useNumbers").checked;
+      const useSymbols = document.getElementById("useSymbols").checked;
+
+      let chars = "";
+      if (useLetters) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      if (useNumbers) chars += "0123456789";
+      if (useSymbols) chars += "!@#$%^&*()-_=+[]{};:,.<>?/";
+
+      if (!chars) {
+        alert("Please select at least one character type.");
+        return "";
+      }
+
+      let password = "";
+      for (let i = 0; i < length; i++) {
+        password += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return password;
+    }
+
+    function updatePasswordList() {
+      passwordList.innerHTML = "";
+      savedPasswords.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "bg-white/5 backdrop-blur-md p-4 rounded-xl shadow-md border border-white/20 hover:border-yellow-600";
+
+        const text = document.createElement("span");
+        text.textContent = `${item.platform}: ${item.password}`;
+        text.classList.add("font-mono");
+
+        const actions = document.createElement("div");
+        actions.className = "flex gap-2 mt-2 md:mt-0";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.textContent = "Copy";
+        copyBtn.className = "text-sm px-2 py-1 bg-yellow-600 hover:bg-yellow-500 rounded text-white";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(item.password);
+          alert("Password copied!");
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete";
+        deleteBtn.className = "text-sm px-2 py-1 bg-red-600 hover:bg-red-500 rounded text-white";
+        deleteBtn.onclick = () => {
+          savedPasswords.splice(index, 1);
+          saveToLocalStorage();
+          updatePasswordList();
+        };
+
+        actions.appendChild(copyBtn);
+        actions.appendChild(deleteBtn);
+        li.appendChild(text);
+        li.appendChild(actions);
+        passwordList.appendChild(li);
+      });
+    }
+
+    generateBtn.addEventListener("click", () => {
+      const length = parseInt(document.getElementById("length").value);
+      const platform = document.getElementById("platform").value.trim();
+
+      if (!platform) {
+        alert("Please enter where you're using the password.");
+        return;
+      }
+
+      const password = generatePassword(length);
+      if (!password) return;
+
+      generatedPasswordEl.textContent = `Generated: ${password}`;
+
+      const save = confirm("Do you want to save this password?");
+      if (save) {
+        savedPasswords.push({ platform, password });
+        saveToLocalStorage();
+        updatePasswordList();
+      }
+    });
+
+    function download(filename, text) {
+      const element = document.createElement("a");
+      element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(text));
+      element.setAttribute("download", filename);
+      element.style.display = "none";
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    }
+
+    exportTxt.addEventListener("click", () => {
+      let text = savedPasswords.map(item => `${item.platform}: ${item.password}`).join("\n");
+      download("passwords.txt", text);
+    });
+
+    exportJson.addEventListener("click", () => {
+      download("passwords.json", JSON.stringify(savedPasswords, null, 2));
+    });
+
+    // Load saved passwords on page load
+    updatePasswordList();
+  </script>
+  <!-- Footer -->
+<footer class="absolute bottom-5 w-full  text-center text-white text-sm
+  <p class="opacity-80">Made with ❤️ by <span class="font-semibold text-yellow-500 hover:text-yellow-400">Sudhanshu</span></p>
+</footer>
+
+</body>
+</html>
